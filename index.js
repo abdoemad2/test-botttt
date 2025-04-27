@@ -1,7 +1,8 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const fs = require('fs');
+const qrcode = require('qrcode-terminal');
+const replyPlugin = require('./plugins/reply');  // استيراد الـ Plugin الجديد
 
-// تحميل الجلسة من ملف
 let sessionData;
 try {
     sessionData = require('./session.json');
@@ -9,22 +10,25 @@ try {
     console.log('لا يوجد جلسة محفوظة، سيتم توليد QR');
 }
 
-// إنشاء العميل مع الجلسة المحفوظة أو بدونها
 const client = new Client({
     authStrategy: sessionData ? new LocalAuth({ session: sessionData }) : undefined
 });
 
 client.on('ready', () => {
-    console.log('البوت شغال باستخدام الجلسة المحفوظة!');
+    console.log('البوت جاهز!');
 });
 
-client.on('message', message => {
-    if (message.body === 'سلام') {
-        message.reply('وعليكم السلام!');
-    }
+client.on('qr', (qr) => {
+    qrcode.generate(qr, { small: true });
+    console.log('يرجى مسح هذا الكود QR باستخدام تطبيق واتساب.');
 });
 
-// حفظ الجلسة في ملف بعد الاتصال
+client.on('message', (message) => {
+    // استدعاء الـ Plugin للرد على الرسائل
+    replyPlugin(message);
+});
+
+// حفظ الجلسة بعد التوثيق
 client.on('authenticated', (session) => {
     fs.writeFileSync('./session.json', JSON.stringify(session));
 });
